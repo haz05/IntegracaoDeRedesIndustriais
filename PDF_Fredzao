@@ -1,0 +1,208 @@
+É protocolo aberto desenvolvido pela Modicon em 1979, atualmente Schneider Electric.
+
+Assim como outros, é protocolo de comunicação serial que se enquadra na categoria devicebus. O Modbus possui uma variação chamada de Modbus + (plus) que se enquadra na categoria fieldbus que veremos mais tarde.
+
+Caracteriza-se por padronizar mensagens, por este fato está localizado na camada de aplicação do modelo OSI, que provê comunicação cliente/servidor entre dispositivos conectados por diferentes tipos de barramentos ou redes.
+
+O Modbus é baseado no modelo mestre/escravo (CLP e RTUs) com os escravos impedidos de se comunicarem entre si.
+
+O Modbus não especifica o meio de comunicação (meio físico) e sim a estrutura dos quadros, usualmente funciona sobre: RS-232, RS-485 e Ethernet, mas pode também funcionar sobre RF e Fibra Ótica.
+
+O padrão permite mensagens em broadcast. Também há apenas dois tipos de quadros:
+
+quadro de consulta (request)
+quadro de resposta (reply)
+O mestre trabalha em dois modos:
+
+modo requisição/resposta (unicast) - pode enviar mensagem para um escravo
+modo difusão (broadcast) - pode enviar uma mensagem comum a todos os escravos
+No Modbus é necessário designar um endereço (de 1 a 247) para cada escravo, o endereço “0” é usado para broadcast.
+
+O mestre possui várias atribuições, são elas:
+
+Assegurar a troca de informações entre as ECL (Estações de Controle Local) ou ETD (Equipamento Terminal de Dados - RTU)
+Assegurar um diálogo com outros mestres ou com um computador (gestão centralizada do conjunto do processo)
+Assegurar a programação ou passagem de parâmetros para os escravos
+No Modbus existem diversos acrônimos que são usados para designar alguns parâmetros do protocolo. Os mais importantes são:
+
+ADU – Application Data Unit
+PDU – Protocol Data Unit
+MB – Modbus Protocol
+MBAP – Modbus Application Protocol
+TIA – Telecommunication Industry Association
+EIA - Electonic Industries Alliance
+Meio Físico
+
+No Modbus existem dois meios físicos usuais
+
+Modbus Padrão - usado para comunicação dos CLPs com os módulos de I/O, atuadores de válvulas, transdutores de energia, etc. Neste padrão a é transmissão serial assíncrona sobre vários meios: EIA/TIA-232-E (RS-232), EIA/TIA-422 (RS-422), EIA/TIA-485-A (RS-485), fibra óptica, RF. Naturalmente que neste caso sempre são usadas as especificações elétricas, ópticas ou de RF destes meios, assim como as velocidades compatíveis com estes meios.
+Modbus TCP/IP - Usado para comunicação entre sistemas de supervisão e CLP’s. Os dados, em formato binário, são encapsulados em quadros Ethernet, pacotes IP e segmentos TCP. Utiliza a porta 502 da pilha TCP/IP em velocidade compatível com o Ethernet (tipicamente 100 Mbps).
+A figura abaixo ilustra 3 padrões Modbus (padrão, plus e TCP/IP) que podem ser empregados em diferentes níveis na automação fabril.
+
+modbus_padroes
+
+A figura abaixo ilustra o chamado Modbus communication stack, ou seja a pilha de comunicação do Modbus associado ao modelo ISO/OSI.
+
+modbus_osi_compar
+
+Topologia
+
+A figura abaixo demonstra as possibilidades de uso do Modbus em diferentes meios, desta forma podendo ter diferentes topologias. Nota-se o Modbus em RS-485 que possibilita uma topologia barramento multi-drop. Já no RS-232 somente pode-se usar a topologia ponto a ponto com apenas dois dispositivos (um mestre e outro escravo). No TCP/IP podem ser empregadas diversas topologias, como barramento, estrela e anel. Nota-se ainda que todas estes padrões podem ser interconectados através de gateways/bridges.
+
+modbus_arch
+
+Descrição do Protocolo
+
+O protocolo Modbus define uma única PDU, independente do meio físico, ou seja sempre igual, independente do meio físico. O mapeamento (encapsulamento) do protocolo Modbus em um barramento ou rede específica introduz alguns campos adicionais, criando a ADU como mostra a figura.
+
+modbus_adu_pdu
+
+O tamanho máximo da PDU é de 253 bytes. As mensagens são codificação e constituídas por um conjunto de caracteres hexadecimais ou ASCII que tem a seguintes características:
+
+A ADU para diferentes meios físicos, ou padrões de transmissão adiciona campos. Assim para:
+RS232/RS485 são adicionados
+1 byte para endereço (escravo)
+2 bytes para checagem de erro (CRC)
+TCP/IP são adicionados
+7 bytes chamados de MBAP que são formados por:
+Transaction Identifier (2 bytes) – mestre (cliente) que seta e escravo responde com o mesmo
+Protocol Identifier (2 bytes) – cliente (padrão = 00 00h)
+Length (2 bytes) – comprimento em bytes do conjunto PDU + UI
+Unit Identifier (UI) (1 byte) – endereço do escravo
+
+Os serviços são especificados por códigos de função com cada serviço possuindo um formato de mensagem para a requisição e outro para a resposta.
+Os códigos de funções válidos vão de 1 a 255, sendo que de 128 a 255 são reservados para respostas de exceção (erro). O bit mais significativo é o que decide o tipo do código. Códigos de sub-função podem ser adicionados aos códigos de função para definir múltiplas ações.
+
+Modos de Codificação
+
+Existem dois modos de codificação de mensagens:
+
+Modbus RTU - os bytes são transmitidos de forma binária pura. A checagem da mensagem é com um campo de CRC de 16 bits (2 bytes).
+Modbus ASCII - cada byte é dividido em dois de representação hexadecimal e codificação em ASCII (7 bits). Nota-se que esta codificação é um desperdício bits. A checagem é por LRC (Longitudinal Redundancy Check).
+Na codificação ASCII há uma padronização dos intervalos que devem ser menores ou iguais a 1 segundo durante a transmissão da mensagem. Há o uso de um delimitador de início e fim de mensagem, se inicia com “:”  (dois pontos, código ASCII para este caractere) e se termina com “CR” (carriage return) e “LF” (line feed), ou seja um "enter" do teclado no Windows.
+
+No ASCII são usados tipicamente 10 bits por caractere ASCII, sendo 1 startbit, 7 bits de dados, 1 bit de paridade (opcional, caso não seja usado deve-se acrescentar mais um stopbit), 1 stopbit. A figura abaixo ilustra a estrutura do quadro na codificação ASCII.
+
+modbus_ascii
+
+Na codificação RTU é diferente, os dados são transmitidos em formato binário de 8 bits com  os delimitadores de início e fim. São usados tipicamente 11 bits por caractere (que representa diretamente um byte). Para cada caractere há 1 startbit, 8 bits de dados, 1 bit de paridade (opcional, caso não seja usado deve-se acrescentar mais um stopbit) e 1 stopbit. A figura abaixo ilustra a estrutura do quadro na codificação RTU.
+
+modbus_rtu
+
+Para a transmissão no modo RTU a distância entre quadros deve ser no mínimo 3,5 tempo de caracteres (tipicamente 3,5 x 11 = 38,5 tempo de but) que são dependentes da velocidade de transmissão serial. Ainda há uma regulamentação que padroniza os quadros a terem um espaçamento máximo entre caracteres de 1,5 tempo de caracteres. A figura abaixo ilustra estas duas situações.
+
+modbus_rtu2
+
+Para efeitos de comparação, se tivermos que enviar um caractere (byte) AE em hexadecimal, no modo RTU será transmitido simplesmente 1010 1110, enquanto no modo ASCII, código 41 (representando o primeiro "dígito" da representação do dado em haxadecimal, ou seja, A) e 45 (representando o primeiro "dígito" da representação do dado em haxadecimal, ou seja, E), isto é, 1000001 1000101. Nota-se que para cada caractere no RTU são transmitidos 8 bits (1 byte) enquanto que no ASCII são transmitidos 14 bits, ou seja há um overhead de 6 bits para cada caractere, fora ainda os delimitadores de frame do ASCII. A tabela abaixo mostra todos os caracteres possíveis em ASCII e seus equivalentes em hexadecimal e binário.
+
+modbus_ascii_chars
+
+A codificação RTU é muito mais empregada que a ASCII por isso daqui por diante usaremos nos exemplos e figuras a codificação RTU. Lembre-se que a transmissão segue o LSB first (bit menos significativo primeiro).
+
+Transações entre Mestre e Escravo
+
+As transações entre mestre e escravo seguem uma estrutura bem simples representada na figura abaixo. O endereço no caso é sempre do escravo e quem faz a solicitação é somente o mestre, por isso não há necessidade de inclusão do endereço do mestre.
+
+modbus_request-reply
+
+Para ilustrar diferentes cenários de solicitações de mestre a figura abaixo ilustra 3 solicitações do mestre, uma para escravo 1, outra em broadcast, e uma última solicitação para o escravo N com erro. Nota-se que há uma resposta normal do escravo 1 após um período de processamento do escravo (em que o mestre fica esperando). Quando há uma solicitação em broadcast do mestre os escravos não respondem. E por último quando há uma detecção de erro pelo escravo a uma solicitação do mestre este responde com um quadro de exceção. A linha mais abaixo mostra a linha de comunicação compartilhada pelos escravos e pelo mestre.
+
+modbus_request-reply_graph
+
+O campo de dados da mensagem enviada de um mestre para um escravo contém informações adicionais que auxiliam o escravo a executar a ação requerida no campo "código da função" (function code), como:
+
+Endereços dos registradores (registro inicial)
+Quantidade de registros a serem lidos
+Contador da quantidade de bytes no campo de dados
+O campo de dados pode não existir. Neste caso o próprio código da função sozinho especifica a ação requerida
+Se não ocorrer nenhum erro na função especificada na requisição, a resposta do escravo conterá o dado requisitado, caso contrário o campo dados conterá um código de exceção
+O formato da requisição (request) do mestre segue o seguinte padrão:
+
+Nº do endereço do escravo (1 byte)
+Código da função a realizar (1 byte)
+Comandos de escrita ou leitura
+Dados
+Endereço da posição de memória (2 bytes)
+Quantidade de operandos (2 bytes)
+Para múltiplos operandos o 1º byte especifica o operando e o 2º especifica o número de operandos
+Dados a serem escritos no escravo
+Controle de erros (2 bytes): CRC-16
+O formato da resposta (response ou reply) do escravo segue o seguinte padrão:
+
+Nº do endereço do escravo (1 byte)
+Código da função realizada (1 byte)
+Comando solicitado de escrita ou leitura
+Dados
+Quantidade de dados da resposta (1 bytes)
+Dados solicitados para o escravo
+Controle de erros (2 bytes): CRC-16
+Cada mestre da rede Modbus pode ser dito um cliente enquanto cada escravo um servidor, ou seja, segue o modelo de conexão cliente-servidor como mostra a figura.
+
+modbus_client-server
+
+Modbus Function Codes
+
+Para cada função, ou seja requisição de serviços do mestre existe um código de função (function code) no Modbus. Assim há 3 tipos de PDUs como ilustra a figura abaixo.
+
+modbus_pdus
+
+Os códigos de função variam do código 1 ao 127 (em binário 0000001 ao 01111111) enquanto que exceções variam de 128 a 255 (10000000, 11111111), ou seja, estes tem nível alto no bit mais significativo. As exceções são tipicamente codificadas em códigos de função FC + 128. Os tipos de dados no Modbus são:
+
+modbus_datatypes
+
+Há uma variação de acordo com os fabricantes de produtos Modbus se estes possuem todos estes tipos de dados ou não. É muito comum encontrar dispositivos que tenham mapeado todos I/Os como holding registers. Holding registers são os registradores universais usados para escrita e leitura e podendo ser mapeados para entradas, saídas e dados de configuração ou qualquer outra aplicação que requeira que os dados sejam mantidos (holding).
+
+Os códigos de função (requisição de serviços) mais comuns são:
+
+01 - Read coil status - leitura de múltiplos operandos do tipo coil (leitura do estado das saídas discretas - cada um é 1 bit)
+02 - Read input status: leitura de múltiplos operandos do tipo input (leitura do estado das entradas discretas - cada um é 1 bit)
+03 - Read holding registers: leitura de múltiplos operandos do tipo holding register (leitura dos valores dos registradores de memória - cada registrador são 2 bytes = 16 bits)
+04 - Read input register: leitura de múltiplos operandos do tipo input register (leitura dos valores das entradas analógicas - cada registrador são 2 bytes = 16 bits)
+05 - Force single coil: escrita de um único operando do tipo coil (escrita de uma única saída discreta - cada um é um bit)
+06 - Preset single register: escrita de um único operando do tipo holding register (escrita de um valor em um registrador de memória - cada registrador são 2 bytes = 16 bits)
+0F - Force multiple coils: escrita de múltiplos operandos do tipo coil (escrita de múltiplas saídas discretas - cada um é 1 bit)
+10 - Preset multiple registers: escrita de múltiplos operandos do tipo holding register (escrita de múltiplos valores em registradores de memória - cada registrador são 2 bytes = 16 bits)
+A figura abaixo contém outras informações sobre alguns function codes.
+
+modbus_fcs
+
+A Modicon tem uma convenção para notação dos registradores, ou seja o endereços lógicos dos dados (memória é dividida em registradores de 16 bits)
+
+00001 a 09999 – coils (solenóides, saídas discretas para os atuadores ON-OFF utilizam um bit. Cada registrador comporta 16 saídas)
+10001 a 19999 – inputs (entradas discretas para os sensores ON-OFF utilizam um bit. Cada registrador comporta 16 saídas)
+30001 a 39999 – inputs registers (entradas analógicas utilizam registradores de 16 bits para os valores obtidos dos conversores A/D a partir do sinais dos sensores analógicos)
+40001 a 49999 – holding registers (registradores de memórias com 16 bits para os valores utilizados internamente nos CLP’s)
+Na prática todos os endereços lógicos variam de 0 a 9998 e a identificação está associada ao tipo do serviço (código da função). Existe a possibilidade de uso de endereços maiores que 50001. Nestes casos este tipo de registrador é chamado de estentido.
+
+Exemplos
+
+Para ilustrar seguem alguns exemplos de requisições.
+
+Ex. 1. A figura abaixo ilustra uma requisição do mestre a um escravo com o function code 2, ou seja a leitura de entradas discretas (read inputs). Importante notar que não estão ilustrados o campo de endereço e nem o CRC.
+
+modbus_fc2_ex
+
+Note que são especificados além do código da função o endereço de início, que é separado em parte alta (Hi) e baixa (Lo), ou seja 00 C4 (representando o endereço 197 em decimal, pois começa do endereço 10001 para inputs). Logo após, no próximo campo, são especificados a quantidade de entradas lidas desejadas, no caso 16. Assim o escravo responde com o mesmo function code, o número de bytes, no caso 2, pois foram pedidas 16 entradas discretas. Os dois bytes seguintes representam os valores das entradas de 214 a 197 (197 a 214 inversamente) e 222 a 215 (215 a 222 inversamente), ou seja as 16 entradas solicitadas "codificadas" em dois bytes (16 bits), AC e DB respectivamente ou (10101100 e 11011011 ou simplesmente colocando na ordem de 197 a 222 - 0011010111011011).
+
+Ex. 2. Exemplos de requisição FC = 03 com mestre solicitando uma leitura dos registradores 40108 (6B já que os holding registers começam em 40001) a 40110 (6E) ao escravo 6. O dispositivo 6 responde com o conteúdo das três palavras. O 1º registrador é o 40001 que é endereçado como “0”, portanto o endereço do 40108 é 107d = 006Bh. A figura abaixo ilustra as duas mensagens.
+
+modbus_fc3_ex
+
+Note que o escravo responde enviando valores de 6 bytes, isto é com 3 registradores (40108, 40109 e 40110), com os valores 022Bh (555d), 0000h e 0063h (99d) respectivamente. Observe também que estão representados os quadros em ASCII e RTU para efeito de comparação.
+
+Há atualmente uma gama muito grande de ferramentas para Modbus, inclusive com simuladores de mestres e escravos, tanto para Modbus Padrão quanto para TCP/IP. Na aula prática serão demonstrados alguns destes simuladores com a disponibilização de links para download (ver aula prática).
+
+Códigos de Exceção
+
+Os códigos de exceção estão descritos na tabela abaixo. Note que há vários tipos e que são respostas dos escravos (servidores) a funções solicitadas pelo mestre.
+
+modbus_exceptions
+
+Problemas do Modbus
+
+Se um registrador pode armazenar 16 bits, como pode-se ler dados do tipo ponto flutuante ou dados de 32 bits?
+
+Apesar do Modbus usar registradores de 16 bits existe uma padronização para leitura e escrita de dados maiores que 16 bits. A mais comum é a IEEE 754 floating point e a 32-bit integer. O dado “longo” consiste em simplesmente usar dois registradores para um dado.
+
+Última atualização: terça, 16 out 2018, 10:13
+Seguir para...
